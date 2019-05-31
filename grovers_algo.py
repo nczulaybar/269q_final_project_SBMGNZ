@@ -10,16 +10,17 @@ def create_diffusion_op(n):
 	DIFF = diff_def.get_constructor()
 	return diff_def, DIFF
 
-def grovers(num_qubits, oracle, rounds = -1):
+def grovers(num_qubits: int, oracle, rounds = -1):
 	qc = get_qc(str(num_qubits) + 'q-qvm')
 	p = Program()
 
 	diff_def, diffusion_op = create_diffusion_op(num_qubits)
 	p += diff_def
 
-	oracle_def = DefGate("ORACLE", oracle)
-	ORACLE = oracle_def.get_constructor()
-	p += oracle_def
+	# oracle_def = DefGate("ORACLE", oracle)
+	# ORACLE = oracle_def.get_constructor()
+	# p += oracle_def
+	p += oracle
 
 	diff_args = range(num_qubits)
 
@@ -34,7 +35,7 @@ def grovers(num_qubits, oracle, rounds = -1):
 
 	for r in range(rounds):
 		# appy oracle
-		p += ORACLE(*diff_args)
+		p += oracle #ORACLE(*diff_args)
 		p += diffusion_op(*diff_args)
 		
 
@@ -42,20 +43,82 @@ def grovers(num_qubits, oracle, rounds = -1):
 	for i in range(num_qubits):
 		print("qubit " + str(i) +  ": " + str(results[i]))
 
-"""
-Notes:
-	1) oracle should be a numpy array
-	2) make sure not to run for more than the suggested number of rounds, 
-	   because the accuracy falls off (I'm not quite sure why)
+# """
+# Notes:
+# 	1) oracle should be a numpy array
+# 	2) make sure not to run for more than the suggested number of rounds, 
+# 	   because the accuracy falls off (I'm not quite sure why)
 
-"""
-SEARCHED_STRING = "1101"
-N = len(SEARCHED_STRING)
-oracle = np.zeros(shape=(2 ** N, 2 ** N))
-for b in range(2 ** N):
-    if np.binary_repr(b, N) == SEARCHED_STRING:
-        oracle[b, b] = -1
-    else:
-        oracle[b, b] = 1
+# """
+# SEARCHED_STRING = "1101"
+# N = len(SEARCHED_STRING)
+# oracle = np.zeros(shape=(2 ** N, 2 ** N))
+# for b in range(2 ** N):
+#     if np.binary_repr(b, N) == SEARCHED_STRING:
+#         oracle[b, b] = -1
+#     else:
+#         oracle[b, b] = 1
 
-grovers(N, oracle)
+# Construct diag operator that returns -1 if all 
+# gates are 1
+def create_Nbit_CZ(N: int):
+	my_mat = np.identity(2 ** N)
+	my_mat[2 ** N - 1, 2 ** N - 1] = -1
+	Nbit_CZ_defgate = DefGate("Nbit_CZ", my_mat)
+	return Nbit_CZ_defgate.get_constructor()
+
+# NZ: I propose Oracle should be a circuit. If it's a numpy array, we
+# can't take advantage of the abstraction of building circuits using 
+# pre-existing pyquil gates
+def make_oracle(begin: str, end: str, N: int):
+
+	oracle = Program()
+
+	# Compute key XOR begin
+	for i in range(N):
+		if begin[i] == 0:
+			oracle += I(int(i))
+
+		elif begin[i] == 1:
+			oracle += X(int(i))
+
+	# Check prev result == end
+	for i in range(N):
+		if end[i] == 0:
+			oracle += X(int(i))
+
+		elif end[i] == 1:
+			oracle += I(int(i))
+
+	# If we have all one's, i.e, we have a match, invert phase
+	NBIT_CZ = create_Nbit_CZ(N)
+
+	# Gate arguments must be non-empty list, even if the gates 
+	# takes all qubits as input. See https://stackoverflow.com/questions/3941517/converting-list-to-args-when-calling-function
+
+	oracle += NBIT_CZ(*(range(N)))
+
+	# Undo our previous modifications to input
+	for i in range(N):
+		if end[i] == 0:
+			oracle += X(int(i))
+
+		elif end[i] == 1:
+			oracle += I(int(i))
+
+	for i in range(N):
+		if begin[i] == 0:
+			oracle += I(int(i))
+
+		elif begin[i] == 1:
+			oracle += X(int(i))
+
+	return oracle
+
+
+oracle = make_oracle("1101", "0010", 4)
+
+grovers(4, oracle)
+
+
+
