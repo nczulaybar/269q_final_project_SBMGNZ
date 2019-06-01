@@ -7,17 +7,20 @@ from pyquil.api import WavefunctionSimulator
 wf_sim = WavefunctionSimulator()
 
 # Builds Grover's algorithm program
-def make_grovers(N: int, begin: str, end: str, rounds = -1):
+def run_grovers(N: int, begin: str, end: str, rounds = -1):
+	
+	qc = get_qc(str(N) + 'q-qvm')
+
 	p = Program()
 
 	### Make Gate Def'ns ###
 	diff_def, diffusion_op = create_diffusion_op(N)
-	
 	### Make program def'ns ###
 	oracle = make_oracle(begin, end, N)
-	
-	### Add gates def'n ###
+	### Add gates def'ns ###
 	p += diff_def
+
+	### Begin Body
 
 	# initalize state of non-ancilary qubits
 	for i in range(N):
@@ -32,18 +35,10 @@ def make_grovers(N: int, begin: str, end: str, rounds = -1):
 		p += oracle #Oracle isn't gate, contains subcircuits
 		p += diffusion_op(*range(N)) 
 
-		# # simulator debug
-		# wavefunction = wf_sim.wavefunction(p)
-		# print(wavefunction)
-
-	return p
-
-# Create core operation for diffusion step
-def create_diffusion_op(n):
-	a = 2.0 * np.full((2**n, 2**n), 1/(2**n)) - np.identity(2**n)
-	diff_def = DefGate("DIFF", a)
-	DIFF = diff_def.get_constructor()
-	return diff_def, DIFF
+	# Real Run
+	results = qc.run_and_measure(p, trials = 30)
+	for i in range(N):
+		print("qubit " + str(i) +  ": " + str(results[i]))
 
 # Builds oracle
 def make_oracle(begin: str, end: str, N: int):
@@ -90,6 +85,13 @@ def make_oracle(begin: str, end: str, N: int):
 
 	return oracle
 
+# Create core operation for diffusion step
+def create_diffusion_op(n):
+	a = 2.0 * np.full((2**n, 2**n), 1/(2**n)) - np.identity(2**n)
+	diff_def = DefGate("DIFF", a)
+	DIFF = diff_def.get_constructor()
+	return diff_def, DIFF
+	
 # Construct diag operator that returns -1 if all gates are 1
 def create_Nbit_CZ(N: int):
 	my_mat = np.identity(2 ** N)
@@ -97,13 +99,5 @@ def create_Nbit_CZ(N: int):
 	Nbit_CZ_def = DefGate("Nbit_CZ", my_mat)
 	return Nbit_CZ_def, Nbit_CZ_def.get_constructor()
 
-### Main, just to separate program logic from QVM setup and global params
-N = 4
+run_grovers(4, "0011", "0110")
 
-qc = get_qc(str(N) + 'q-qvm')
-p = make_grovers(N, "0011", "0110")
-
-# Real Run
-results = qc.run_and_measure(p, trials = 30)
-for i in range(N):
-	print("qubit " + str(i) +  ": " + str(results[i]))
