@@ -6,19 +6,8 @@ import numpy as np
 from pyquil.api import WavefunctionSimulator
 wf_sim = WavefunctionSimulator()
 
-# Create core operation for diffusion step
-def create_diffusion_op(n):
-	a = 2.0 * np.full((2**n, 2**n), 1/(2**n)) - np.identity(2**n)
-	diff_def = DefGate("DIFF", a)
-	DIFF = diff_def.get_constructor()
-	return diff_def, DIFF
-
-def grovers(N: int, begin: str, end: str, rounds = -1):
-	ancilla_qbits = 0
-	debug_qbits = 0
-	total_qbits = N + ancilla_qbits + debug_qbits
-
-	qc = get_qc(str(total_qbits) + 'q-qvm')
+# Builds Grover's algorithm program
+def make_grovers(N: int, begin: str, end: str, rounds = -1):
 	p = Program()
 
 	### Make Gate Def'ns ###
@@ -39,7 +28,7 @@ def grovers(N: int, begin: str, end: str, rounds = -1):
 		rounds = int(np.pi/4 * np.sqrt(2**N))
 	print("Rounds: " + str(rounds))
 
-	for r in range(2): #debug, rounds -> 1
+	for r in range(rounds): #debug, rounds -> 1
 		p += oracle #Oracle isn't gate, contains subcircuits
 		p += diffusion_op(*range(N)) 
 
@@ -47,25 +36,23 @@ def grovers(N: int, begin: str, end: str, rounds = -1):
 		# wavefunction = wf_sim.wavefunction(p)
 		# print(wavefunction)
 
-	# Real run
-	results = qc.run_and_measure(p, trials = 30)
-	for i in range(total_qbits):
-		print("qubit " + str(i) +  ": " + str(results[i]))
+	return p
 
-# Construct diag operator that returns -1 if all 
-# gates are 1
-def create_Nbit_CZ(N: int):
-	my_mat = np.identity(2 ** N)
-	my_mat[2 ** N - 1, 2 ** N - 1] = -1
-	Nbit_CZ_def = DefGate("Nbit_CZ", my_mat)
-	return Nbit_CZ_def, Nbit_CZ_def.get_constructor()
+# Create core operation for diffusion step
+def create_diffusion_op(n):
+	a = 2.0 * np.full((2**n, 2**n), 1/(2**n)) - np.identity(2**n)
+	diff_def = DefGate("DIFF", a)
+	DIFF = diff_def.get_constructor()
+	return diff_def, DIFF
 
-# NZ: I propose Oracle should be a circuit. If it's a numpy array, we
-# can't take advantage of the abstraction of building circuits using 
-# pre-existing pyquil gates
+# Builds oracle
 def make_oracle(begin: str, end: str, N: int):
 
 	oracle = Program()
+
+	### Gate defs 
+	Nbit_CZ_def, Nbit_CZ = create_Nbit_CZ(N)
+	oracle += Nbit_CZ_def
 
 	# Compute key XOR begin
 	for i in range(N):
@@ -84,11 +71,6 @@ def make_oracle(begin: str, end: str, N: int):
 			oracle += I(int(i))
 
 	# If we have all one's, i.e, we have a match, invert phase
-	Nbit_CZ_def, Nbit_CZ = create_Nbit_CZ(N)
-	oracle += Nbit_CZ_def
-
-	# Gate arguments must be non-empty list, even if the gates 
-	# takes all qubits as input. See https://stackoverflow.com/questions/3941517/converting-list-to-args-when-calling-function
 	oracle += Nbit_CZ(*(range(N)))
 
 	# Undo our previous modifications to input
@@ -108,4 +90,20 @@ def make_oracle(begin: str, end: str, N: int):
 
 	return oracle
 
-grovers(4, "0011", "0110")
+# Construct diag operator that returns -1 if all gates are 1
+def create_Nbit_CZ(N: int):
+	my_mat = np.identity(2 ** N)
+	my_mat[2 ** N - 1, 2 ** N - 1] = -1
+	Nbit_CZ_def = DefGate("Nbit_CZ", my_mat)
+	return Nbit_CZ_def, Nbit_CZ_def.get_constructor()
+
+### Main, just to separate program logic from QVM setup and global params
+N = 4
+
+qc = get_qc(str(N) + 'q-qvm')
+p = make_grovers(N, "0011", "0110")
+
+# Real Run
+results = qc.run_and_measure(p, trials = 30)
+for i in range(N):
+	print("qubit " + str(i) +  ": " + str(results[i]))
