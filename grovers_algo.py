@@ -13,29 +13,25 @@ def run_grovers(N: int, begin: str, end: str, rounds = -1):
 
 	p = Program()
 
-	### Make Gate Def'ns ###
-	diff_def, diffusion_op = create_diffusion_op(N)
-	### Make program def'ns ###
-	oracle = make_oracle(begin, end, N)
-	### Add gates def'ns ###
-	p += diff_def
-
-	### Begin Body
-
-	# initalize state of non-ancilary qubits
+	# Initialize Non-Ancillary QBits
 	for i in range(N):
 		p += H(i)
 
-	# default number of rounds
-	if rounds == -1:
+	# Main Loop Setup
+	if rounds == -1: # Default number of rounds
 		rounds = int(np.pi/4 * np.sqrt(2**N))
 	print("Rounds: " + str(rounds))
 
+	diff_def, diffusion_op = create_diffusion_op(N)
+	p += diff_def
+	oracle = make_oracle(begin, end, N)
+
+	# Main Loop
 	for r in range(rounds): #debug, rounds -> 1
 		p += oracle #Oracle isn't gate, contains subcircuits
 		p += diffusion_op(*range(N)) 
 
-	# Real Run
+	# Execute and Output
 	results = qc.run_and_measure(p, trials = 30)
 	for i in range(N):
 		print("qubit " + str(i) +  ": " + str(results[i]))
@@ -91,7 +87,7 @@ def create_diffusion_op(n):
 	diff_def = DefGate("DIFF", a)
 	DIFF = diff_def.get_constructor()
 	return diff_def, DIFF
-	
+
 # Construct diag operator that returns -1 if all gates are 1
 def create_Nbit_CZ(N: int):
 	my_mat = np.identity(2 ** N)
