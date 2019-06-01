@@ -64,8 +64,9 @@ def grovers(num_qubits: int, oracle, rounds = -1):
 def create_Nbit_CZ(N: int):
 	my_mat = np.identity(2 ** N)
 	my_mat[2 ** N - 1, 2 ** N - 1] = -1
-	Nbit_CZ_defgate = DefGate("Nbit_CZ", my_mat)
-	return Nbit_CZ_defgate.get_constructor()
+	#my_mat[0,0] = -1
+	Nbit_CZ_def = DefGate("Nbit_CZ", my_mat)
+	return Nbit_CZ_def, Nbit_CZ_def.get_constructor()
 
 # NZ: I propose Oracle should be a circuit. If it's a numpy array, we
 # can't take advantage of the abstraction of building circuits using 
@@ -91,12 +92,12 @@ def make_oracle(begin: str, end: str, N: int):
 			oracle += I(int(i))
 
 	# If we have all one's, i.e, we have a match, invert phase
-	NBIT_CZ = create_Nbit_CZ(N)
+	Nbit_CZ_def, Nbit_CZ = create_Nbit_CZ(N)
+	oracle += Nbit_CZ_def
 
 	# Gate arguments must be non-empty list, even if the gates 
 	# takes all qubits as input. See https://stackoverflow.com/questions/3941517/converting-list-to-args-when-calling-function
-
-	oracle += NBIT_CZ(*(range(N)))
+	oracle += Nbit_CZ(*(range(N)))
 
 	# Undo our previous modifications to input
 	for i in range(N):
@@ -116,9 +117,9 @@ def make_oracle(begin: str, end: str, N: int):
 	return oracle
 
 
-oracle = make_oracle("1101", "0010", 4)
+oracle = make_oracle("11", "01", 2)
 
-grovers(4, oracle)
+grovers(2, oracle)
 
 
 
