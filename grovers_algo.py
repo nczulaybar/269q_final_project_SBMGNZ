@@ -25,6 +25,7 @@ def run_grovers(N: int, begin: str, end: str, rounds = -1, offsets = [1, 0]):
 	diff_def, diffusion_op = create_diffusion_op(N)
 	p += diff_def
 	oracle = make_shift_rows_oracle(begin, end, N, offsets)
+	#oracle = make_oracle(begin, end, N)
 
 	# Main Loop
 	for r in range(rounds): #debug, rounds -> 1
@@ -93,15 +94,19 @@ def make_shift_rows_oracle(begin: str, end: str, N: int, offsets: list):
 	print(rows)
 	cols = int(N/rows)
 
-	for i in range(rows):
-		oracle += shift_row_p1(begin[i*cols: (i+1)*cols], end[i*cols: (i+1)*cols],
-							cols, offsets[i], i*cols)
+	rounds = 2
+
+	for r in range(rounds):
+		for i in range(rows):
+			oracle += shift_row_p1(begin[i*cols: (i+1)*cols], end[i*cols: (i+1)*cols],
+							cols, ((r+1)*offsets[i])%cols, i*cols)
 	
 	oracle += 	Nbit_CZ(*(range(N)))
 	
-	for i in range(rows):
-		oracle += shift_row_p2(begin[i*cols: (i+1)*cols], end[i*cols: (i+1)*cols],
-					cols, offsets[i], i*cols)
+	for r in range(rounds):
+		for i in range(rows):
+			oracle += shift_row_p2(begin[i*cols: (i+1)*cols], end[i*cols: (i+1)*cols],
+						cols,((r+1)*offsets[i])%cols, i*cols)
 
 	return oracle
 
@@ -215,5 +220,7 @@ def create_Nbit_CZ(N: int):
 	Nbit_CZ_def = DefGate("Nbit_CZ", my_mat)
 	return Nbit_CZ_def, Nbit_CZ_def.get_constructor()
 
-run_grovers(4, "1011", "1100", offsets = [1, 0])
+#run_grovers(4, "1011", "1100", offsets = [1, 0])
+run_grovers(4, "0000", "1111", offsets = [1, 1])
+#run_grovers(4, "1100", "1001")
 
