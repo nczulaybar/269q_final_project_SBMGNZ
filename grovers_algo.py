@@ -90,11 +90,9 @@ def make_shift_rows_oracle(begin: str, end: str, N: int, offsets: list):
 	oracle += Nbit_CZ_def
 
 	rows = int(np.sqrt(N))
-	#rows = 1
-	print(rows)
 	cols = int(N/rows)
 
-	rounds = 2
+	rounds = 1
 
 	for r in range(rounds):
 		for i in range(rows):
@@ -158,12 +156,6 @@ def shift_row_p2(begin: str, end: str, N: int, offset: int, start: int):
 def shift_row_offset(begin: str, end: str, N: int, offset: int, start: int):
 
 	oracle = Program()
-	print("shift_row")
-	print(begin)
-	print(end)
-	print(N)
-	print(offset)
-	print(start)
 
 	### Gate defs 
 	Nbit_CZ_def, Nbit_CZ = create_Nbit_CZ(N)
@@ -220,7 +212,17 @@ def create_Nbit_CZ(N: int):
 	Nbit_CZ_def = DefGate("Nbit_CZ", my_mat)
 	return Nbit_CZ_def, Nbit_CZ_def.get_constructor()
 
-#run_grovers(4, "1011", "1100", offsets = [1, 0])
-run_grovers(4, "0000", "1111", offsets = [1, 1])
-#run_grovers(4, "1100", "1001")
+""" 
+Requires 4 arguments:
+	0) number of qubits in system
+	1) begin bistring (plaintext)
+	2) end bitstring (ciphertext)
+	4) list of offsets per row
+
+Note that the number of qubits should be a square and that
+the begin and end bitstrings will be interpreted as square 
+arrays with sqrt(n) rows and sqrt(n) columns.
+
+""" 
+run_grovers(4, "1011", "1100", offsets = [1, 0])
 
