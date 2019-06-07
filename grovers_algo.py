@@ -9,7 +9,7 @@ from pyquil.api import WavefunctionSimulator
 wf_sim = WavefunctionSimulator()
 
 # Builds Grover's algorithm program
-def run_grovers(qc:str, N: int, begin: str, end: str, rounds = -1, offsets = [1, 0]):
+def run_grovers(qc:str, N: int, begin: str, end: str, rounds = -1, offsets = [1, 0], trials = 20):
 	print("Using qvm: " + qc)
 	qvm = get_qc(qc, as_qvm=True)
 
@@ -42,11 +42,11 @@ def run_grovers(qc:str, N: int, begin: str, end: str, rounds = -1, offsets = [1,
 	# Execute and Output
 	#results = qvm.run(binary)
 	#print(results)
-	results = qvm.run_and_measure(p, trials = 20)
+	results = qvm.run_and_measure(p, trials = trials)
+	return results
 	#results = wf_sim.run_and_measure(p)
 	#print(results)
-	for i in range(N):
-		print("qubit " + str(i) +  ": " + str(results[i]))
+
 
 # Builds oracle
 def make_oracle(begin: str, end: str, N: int):
@@ -238,9 +238,34 @@ arrays with sqrt(n) rows and sqrt(n) columns.
 
 print(list_quantum_computers())
 
+trials = 15
+stats = []
 for qc in list_quantum_computers(qpus=False) + ["4q-qvm", "4q-noisy-qvm", "9q-qvm", "9q-noisy-qvm"]:
-	#try:
-	run_grovers(qc, 4, "1011", "1100", offsets = [1, 0])
+	results = run_grovers(qc, 4, "1011", "1100", offsets = [1, 0], trials=trials)
+	true = [1, 0, 1, 1]
+	stat = [float(sum(results[i]))/trials if true[i] else 
+			 float(trials-sum(results[i]))/trials for i in range(len(true))]
+
+	acc=0.0
+	for i in range(trials):
+		for j in range(len(true)):
+			if(results[j][i] != true[j]):
+				acc-=1
+				break
+		acc+=1
+
+	stat += [acc/trials]
+	stats.append(qc + "," + str(stat))
+
+	for i in range(4):
+		print("qubit " + str(i) +  ": " + str(results[i]))
+
+with open('stats.txt', 'w') as f:
+	for s in stats:
+		f.write(s+"\n")
+
+
+
 	#	print("worked for " + qc)
 	#	break
 	#except:
