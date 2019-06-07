@@ -1,4 +1,5 @@
 from pyquil import Program, get_qc, list_quantum_computers
+from pyquil.noise import add_decoherence_noise
 from pyquil.gates import *
 from pyquil.quil import DefGate
 import numpy as np
@@ -9,11 +10,17 @@ from pyquil.api import WavefunctionSimulator
 wf_sim = WavefunctionSimulator()
 
 # Builds Grover's algorithm program
-def run_grovers(qc:str, N: int, begin: str, end: str, rounds = -1, offsets = [1, 0], trials = 20):
+def run_grovers(qc:str, N: int, begin: str, end: str, rounds = -1, offsets = [1, 0], trials = 20, nlevel = 0):
 	print("Using qvm: " + qc)
+	
+	ret = {}
+	for i in range(N):
+		ret[i] = [] 
+
 	qvm = get_qc(qc, as_qvm=True)
 
 	p = Program()
+	ro = p.declare('ro', 'BIT', N)
 
 	# Initialize Non-Ancillary QBits
 	for i in range(N):
@@ -34,19 +41,21 @@ def run_grovers(qc:str, N: int, begin: str, end: str, rounds = -1, offsets = [1,
 		p += oracle #Oracle isn't gate, contains subcircuits
 		p += diffusion_op(*range(N)) 
 
+	
 	# compile
-	#binary = qvm.compile(p) if isinstance(qvm.qam, QPU) else p
-	#p = qvm.compiler.quil_to_native_quil(p)
-	#ep = qvm.compiler.native_quil_to_executable(p)
-	#print(ep)
-	# Execute and Output
-	#results = qvm.run(binary)
-	#print(results)
-	results = qvm.run_and_measure(p, trials = trials)
-	return results
-	#results = wf_sim.run_and_measure(p)
-	#print(results)
-
+	p = qvm.compile(p)
+	p = Program(p.program)
+	p = add_decoherence_noise(p, nlevel*3e-5, nlevel*3e-5, 5e-8, 1.5e-7, 1)
+	p.pop()
+	for i in range(N):
+		p += MEASURE(i, ro[i])
+	for n in range(50):	
+		results = qvm.run(p)[0]
+		#results = qvm.run_and_measure(Program(p.program), trials = trials)
+		for j in range(N):
+			ret[j].append(results[j])
+	
+	return ret
 
 # Builds oracle
 def make_oracle(begin: str, end: str, N: int):
@@ -240,29 +249,32 @@ print(list_quantum_computers())
 
 trials = 15
 stats = []
-for qc in list_quantum_computers(qpus=False) + ["4q-qvm", "4q-noisy-qvm", "9q-qvm", "9q-noisy-qvm"]:
-	results = run_grovers(qc, 4, "1011", "1100", offsets = [1, 0], trials=trials)
-	true = [1, 0, 1, 1]
-	stat = [float(sum(results[i]))/trials if true[i] else 
-			 float(trials-sum(results[i]))/trials for i in range(len(true))]
+for i in np.arange(10, 20):
+	for qc in ['4q-qvm']:
+		print("nlevel: " + str(i))
+		results = run_grovers(qc, 4, "1011", "1100", offsets = [1, 0], trials=trials, nlevel=i)
+		print(results)
+		true = [1, 0, 1, 1]
+		stat = [float(sum(results[i]))/trials if true[i] else 
+				 float(trials-sum(results[i]))/trials for i in range(len(true))]
 
-	acc=0.0
-	for i in range(trials):
-		for j in range(len(true)):
-			if(results[j][i] != true[j]):
-				acc-=1
-				break
-		acc+=1
+# 	acc=0.0
+# 	for i in range(trials):
+# 		for j in range(len(true)):
+# 			if(results[j][i] != true[j]):
+# 				acc-=1
+# 				break
+# 		acc+=1
 
-	stat += [acc/trials]
-	stats.append(qc + "," + str(stat))
+# 	stat += [acc/trials]
+# 	stats.append(qc + "," + str(stat))
 
-	for i in range(4):
-		print("qubit " + str(i) +  ": " + str(results[i]))
+# 	for i in range(4):
+# 		print("qubit " + str(i) +  ": " + str(results[i]))
 
-with open('stats.txt', 'w') as f:
-	for s in stats:
-		f.write(s+"\n")
+# with open('stats.txt', 'w') as f:
+# 	for s in stats:
+# 		f.write(s+"\n")
 
 
 
