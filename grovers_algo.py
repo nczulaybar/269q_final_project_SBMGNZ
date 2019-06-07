@@ -1,15 +1,17 @@
-from pyquil import Program, get_qc
+from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.gates import *
 from pyquil.quil import DefGate
 import numpy as np
+from pyquil.api import QPU, QuantumComputer
+
 
 from pyquil.api import WavefunctionSimulator
 wf_sim = WavefunctionSimulator()
 
 # Builds Grover's algorithm program
-def run_grovers(N: int, begin: str, end: str, rounds = -1, offsets = [1, 0]):
-	
-	qc = get_qc(str(N) + 'q-qvm')
+def run_grovers(qc:str, N: int, begin: str, end: str, rounds = -1, offsets = [1, 0]):
+	print("Using qvm: " + qc)
+	qvm = get_qc(qc, as_qvm=True)
 
 	p = Program()
 
@@ -32,8 +34,17 @@ def run_grovers(N: int, begin: str, end: str, rounds = -1, offsets = [1, 0]):
 		p += oracle #Oracle isn't gate, contains subcircuits
 		p += diffusion_op(*range(N)) 
 
+	# compile
+	#binary = qvm.compile(p) if isinstance(qvm.qam, QPU) else p
+	#p = qvm.compiler.quil_to_native_quil(p)
+	#ep = qvm.compiler.native_quil_to_executable(p)
+	#print(ep)
 	# Execute and Output
-	results = qc.run_and_measure(p, trials = 30)
+	#results = qvm.run(binary)
+	#print(results)
+	results = qvm.run_and_measure(p, trials = 20)
+	#results = wf_sim.run_and_measure(p)
+	#print(results)
 	for i in range(N):
 		print("qubit " + str(i) +  ": " + str(results[i]))
 
@@ -224,5 +235,13 @@ the begin and end bitstrings will be interpreted as square
 arrays with sqrt(n) rows and sqrt(n) columns.
 
 """ 
-run_grovers(4, "1011", "1100", offsets = [1, 0])
 
+print(list_quantum_computers())
+
+for qc in list_quantum_computers(qpus=False) + ["4q-qvm", "4q-noisy-qvm", "9q-qvm", "9q-noisy-qvm"]:
+	#try:
+	run_grovers(qc, 4, "1011", "1100", offsets = [1, 0])
+	#	print("worked for " + qc)
+	#	break
+	#except:
+	#	continue
