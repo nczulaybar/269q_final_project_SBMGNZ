@@ -1,4 +1,7 @@
-# 269q_final_project_SBMGNZ
+# 269Q Final Project 
+Sawyer Birnbaum
+Maithreyi Gopalakrishnan
+Nicolo Zulaybar
 
 Instructions:
 
