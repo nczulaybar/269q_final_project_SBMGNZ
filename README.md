@@ -3,7 +3,7 @@
 Instructions:
 
 1. First, install PyQuil 2.0 (see http://docs.rigetti.com/en/stable/start.html for instructions)
-2. Run "qvm -S" and "quilc -S" to setup QVM and Quilc Compilier instances
+2. Run "qvm -S" and "quilc -S" to setup QVM and Quilc Compiler instances
 3. To test Grover's algorithm, run "python grovers_algo.py." The script takes a number of arguments.
 
 * -m: this is the plaintext message
