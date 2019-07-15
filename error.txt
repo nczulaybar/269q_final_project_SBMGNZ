@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "grovers_algo.py", line 105, in <module>
+    grovers(4, oracle)
+  File "grovers_algo.py", line 42, in grovers
+    results = qc.run_and_measure(p, trials = 10)
+  File "/mnt/c/Users/nczul/OneDrive/2018-2019/Spring/cs269q/hw_venv/lib/python3.6/site-packages/pyquil/api/_error_reporting.py", line 238, in wrapper
+    val = func(*args, **kwargs)
+  File "/mnt/c/Users/nczul/OneDrive/2018-2019/Spring/cs269q/hw_venv/lib/python3.6/site-packages/pyquil/api/_quantum_computer.py", line 226, in run_and_measure
+    executable = self.compile(program)
+  File "/mnt/c/Users/nczul/OneDrive/2018-2019/Spring/cs269q/hw_venv/lib/python3.6/site-packages/pyquil/api/_error_reporting.py", line 238, in wrapper
+    val = func(*args, **kwargs)
+  File "/mnt/c/Users/nczul/OneDrive/2018-2019/Spring/cs269q/hw_venv/lib/python3.6/site-packages/pyquil/api/_quantum_computer.py", line 256, in compile
+    nq_program = self.compiler.quil_to_native_quil(program)
+  File "/mnt/c/Users/nczul/OneDrive/2018-2019/Spring/cs269q/hw_venv/lib/python3.6/site-packages/pyquil/api/_error_reporting.py", line 238, in wrapper
+    val = func(*args, **kwargs)
+  File "/mnt/c/Users/nczul/OneDrive/2018-2019/Spring/cs269q/hw_venv/lib/python3.6/site-packages/pyquil/api/_compiler.py", line 248, in quil_to_native_quil
+    response = self.client.call('quil_to_native_quil', request).asdict()  # type: Dict
+  File "/mnt/c/Users/nczul/OneDrive/2018-2019/Spring/cs269q/hw_venv/lib/python3.6/site-packages/rpcq/_client.py", line 161, in call
+    raise TimeoutError(f"Timeout on client {self.endpoint}, method name {method_name}, class info: {self}")
+TimeoutError: Timeout on client tcp://127.0.0.1:5555, method name quil_to_native_quil, class info: <rpcq._client.Client object at 0x7f95411f1e80>
